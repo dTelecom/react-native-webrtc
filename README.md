@@ -1,6 +1,12 @@
+# dTelecom React Native WebRTC 104.x (legacy)
+
+`@dtelecom/react-native-webrtc` 104.x provides the native WebRTC module for the legacy `@dtelecom/react-native` 1.x SDK. These releases are unsupported for new dTelecom Cloud apps. Existing integrations can find the dTelecom package source on the [v104.0 branch](https://github.com/dTelecom/react-native-webrtc/tree/v104.0) and the matching native setup in the [React Native SDK README](https://github.com/dTelecom/client-sdk-react-native#readme).
+
+The upstream project documentation follows.
+
 [<img src="https://avatars.githubusercontent.com/u/42463376" alt="React Native WebRTC" style="height: 6em;" />](https://github.com/react-native-webrtc/react-native-webrtc)
 
-# React-Native-WebRTC
+## React-Native-WebRTC
 
 [![npm version](https://img.shields.io/npm/v/react-native-webrtc)](https://www.npmjs.com/package/react-native-webrtc)
 [![npm downloads](https://img.shields.io/npm/dm/react-native-webrtc)](https://www.npmjs.com/package/react-native-webrtc)
