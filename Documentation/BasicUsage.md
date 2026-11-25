@@ -16,7 +16,7 @@ import {
 	MediaStreamTrack,
 	mediaDevices,
 	registerGlobals
-} from 'react-native-webrtc';
+} from '@dtelecom/react-native-webrtc';
 ```
 
 ## Registering Globals

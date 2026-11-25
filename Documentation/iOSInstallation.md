@@ -8,7 +8,7 @@ See a sample app in the `examples/GumTestApp` directory.
 
 **IMPORTANT:** Make sure you are using CocoaPods 1.10 or higher.  
 You may have to change the `platform` field in your podfile.  
-`@livekit/react-native-webrtc` doesn't support iOS < 12 
+`@dtelecom/react-native-webrtc` doesn't support iOS < 12.
 Set it to '12.0' or above or you'll get an error when running `pod install`.
 
 ```
@@ -31,7 +31,7 @@ source 'https://cdn.cocoapods.org/'
 Keep the `cdn.cocoapods.org` line: once a `Podfile` lists any `source`, CocoaPods
 stops using trunk by default, and your other pods still come from there.
 
-When you upgrade `@livekit/react-native-webrtc`, run `pod update LiveKitWebRTC`
+When you upgrade `@dtelecom/react-native-webrtc`, run `pod update LiveKitWebRTC`
 rather than `pod install`, since `pod install` keeps the version recorded in
 `Podfile.lock`. If `pod install` fails with `CocoaPods could not find compatible
 versions for pod "LiveKitWebRTC"` (possibly saying the specs "required a higher
@@ -73,7 +73,7 @@ CXProviderDelegate should call through to `LKRTCAudioSession.sharedInstance.audi
 Javascript methods are also provided to call these methods:
 
 ```
-import { RTCAudioSession } from '@livekit/react-native-webrtc'
+import { RTCAudioSession } from '@dtelecom/react-native-webrtc'
 
 // Call as needed.
 RTCAudioSession.audioSessionDidActivate();

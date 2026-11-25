@@ -56,6 +56,11 @@ public class RTCVideoViewManager extends SimpleViewManager<WebRTCView> {
         view.setObjectFit(objectFit);
     }
 
+    @ReactProp(name = "useTextureView", defaultBoolean = false)
+    public void setUseTextureView(WebRTCView view, boolean useTextureView) {
+        view.setUseTextureView(useTextureView);
+    }
+
     @ReactProp(name = "streamURL")
     public void setStreamURL(WebRTCView view, String streamURL) {
         view.setStreamURL(streamURL);

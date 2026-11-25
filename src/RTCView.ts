@@ -17,6 +17,13 @@ export interface RTCVideoViewProps extends ViewProps {
   mirror?: boolean;
 
   /**
+   * On Android, render in a TextureView to support clipping such as rounded
+   * video tiles. Stacking follows the React Native view hierarchy. Defaults
+   * to false, which uses a SurfaceView and its zOrder setting.
+   */
+  useTextureView?: boolean;
+
+  /**
    * In the fashion of
    * https://www.w3.org/TR/html5/embedded-content-0.html#dom-video-videowidth
    * and https://www.w3.org/TR/html5/rendering.html#video-object-fit,
