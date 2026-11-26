@@ -1,6 +1,6 @@
 # dTelecom React Native WebRTC
 
-`@dtelecom/react-native-webrtc` is the native WebRTC bridge for the dTelecom React Native SDK on Android and iOS. This branch develops the M150 preview. The legacy 104.x line used by the public React Native 1.x SDK is available on the [v104.0 branch](https://github.com/dTelecom/react-native-webrtc/tree/v104.0).
+`@dtelecom/react-native-webrtc` is the native WebRTC bridge for the dTelecom React Native SDK on Android and iOS. The [released React Native SDK](https://www.npmjs.com/package/@dtelecom/react-native) pins the M150 bridge package and installs it automatically. App developers can start with the [Meet and Live example](https://github.com/dTelecom/client-sdk-react-native/tree/dtelecom-m150/example). The legacy 104.x line used by the public React Native 1.x SDK is available on the [v104.0 branch](https://github.com/dTelecom/react-native-webrtc/tree/v104.0).
 
 ## Development
 
