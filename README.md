@@ -1,6 +1,6 @@
 # dTelecom React Native WebRTC 104.x (legacy)
 
-`@dtelecom/react-native-webrtc` 104.x provides the native WebRTC module for the legacy `@dtelecom/react-native` 1.x SDK. These releases are unsupported for new dTelecom Cloud apps. Existing integrations can find the dTelecom package source on the [v104.0 branch](https://github.com/dTelecom/react-native-webrtc/tree/v104.0) and the matching native setup in the [React Native SDK README](https://github.com/dTelecom/client-sdk-react-native#readme).
+`@dtelecom/react-native-webrtc` 104.x provides the native WebRTC module for the legacy `@dtelecom/react-native` 1.x SDK. These releases are unsupported for new dTelecom Cloud apps. Existing integrations can find the dTelecom package source on the [v104.0 branch](https://github.com/dTelecom/react-native-webrtc/tree/v104.0) and the matching native setup in the [React Native 1.x setup instructions](https://github.com/dTelecom/client-sdk-react-native/blob/main/README.md). New mobile apps use the [released React Native SDK](https://www.npmjs.com/package/@dtelecom/react-native), which installs the [M150 bridge](https://github.com/dTelecom/react-native-webrtc/tree/dtelecom-m150). The [iOS and Android example](https://github.com/dTelecom/client-sdk-react-native/tree/dtelecom-m150/example) joins dTelecom Meet and Live.
 
 The upstream project documentation follows.
 
