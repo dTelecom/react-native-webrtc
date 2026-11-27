@@ -172,6 +172,19 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(peerConnectionInit
     return @(ret);
 }
 
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(peerConnectionRequireEncryptedReceivers : (nonnull NSNumber *)objectID) {
+    __block NSNumber *success = @NO;
+    dispatch_sync(self.workerQueue, ^{
+        LKRTCPeerConnection *peerConnection = self.peerConnections[objectID];
+        if (peerConnection) {
+            objc_setAssociatedObject(
+                peerConnection, @selector(peerConnectionRequireEncryptedReceivers:), @YES, OBJC_ASSOCIATION_RETAIN);
+            success = @YES;
+        }
+    });
+    return success;
+}
+
 RCT_EXPORT_METHOD(peerConnectionSetConfiguration
                   : (LKRTCConfiguration *)configuration objectID
                   : (nonnull NSNumber *)objectID) {
@@ -927,6 +940,10 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(peerConnectionRemoveTrack
 - (void)peerConnection:(LKRTCPeerConnection *)peerConnection
         didAddReceiver:(LKRTCRtpReceiver *)rtpReceiver
                streams:(NSArray<LKRTCMediaStream *> *)mediaStreams {
+    if ([objc_getAssociatedObject(peerConnection, @selector(peerConnectionRequireEncryptedReceivers:)) boolValue]) {
+        // Native audio playout can begin before the React track event.
+        rtpReceiver.track.isEnabled = NO;
+    }
     dispatch_async(self.workerQueue, ^{
         LKRTCRtpTransceiver *transceiver = nil;
         for (LKRTCRtpTransceiver *t in peerConnection.transceivers) {

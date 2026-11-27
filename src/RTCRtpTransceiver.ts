@@ -69,6 +69,23 @@ export default class RTCRtpTransceiver {
         this._direction = val;
     }
 
+    /** Await native acknowledgement before negotiating a freshly protected sender. */
+    async activateEncryptedSender(): Promise<void> {
+        if (this._stopped || this._direction !== 'inactive') {
+            throw new Error('Expected an inactive transceiver');
+        }
+
+        const activated = await WebRTCModule.transceiverSetDirection(
+            this._peerConnectionId, this.sender.id, 'sendonly'
+        );
+
+        if (activated !== true) {
+            throw new Error('Could not activate the encrypted sender');
+        }
+
+        this._direction = 'sendonly';
+    }
+
     get currentDirection() {
         return this._currentDirection;
     }

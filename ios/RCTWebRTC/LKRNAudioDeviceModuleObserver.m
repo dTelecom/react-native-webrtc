@@ -67,6 +67,10 @@ static os_log_t ADMObserverLog(void) {
 // cross-thread reads.
 @property(atomic, assign) BOOL autoSessionHoldsActivation;
 
+// setConfiguration can change the category even if the following activation fails.
+// Remember that transition on the audio worker so its next recording attempt retries it.
+@property(nonatomic, assign) BOOL recordingActivationPending;
+
 // Last Apple Voice Processing I/O state reported by willEnableEngine. Only that
 // callback carries it: by the time didDisable fires the input path is already
 // torn down, so neither the callback nor a readback from the module can say what
@@ -486,6 +490,11 @@ static os_log_t ADMObserverLog(void) {
 
 #pragma mark - Native automatic audio session configuration
 
+- (BOOL)ownsActiveAudioSession:(LKRTCAudioSession *)session {
+    return self.autoSessionHoldsActivation && session.isActive && session.activationCount == 1 &&
+           !session.useManualAudio;
+}
+
 // Applies the pushed audio-session policy on the worker thread:
 // - configures on every active state,
 // - activates when the session is not
@@ -496,7 +505,7 @@ static os_log_t ADMObserverLog(void) {
 // of past engine states, so a policy re-push mid-call (setupIOSAudioManagement
 // called again), a path switch, or an interruption cannot desync it:
 // - session already active (previous hold, custom JS path, or the app) ->
-//   reconfigure only, never a second refcounted activation.
+//   reconfigure without taking a second refcounted activation.
 // - session inactive (fresh start, or the custom path deactivated it before a
 //   switch back to the native path) -> activate and take the hold.
 - (NSInteger)applyAutomaticAudioSessionConfigForPlayout:(BOOL)isPlayoutEnabled
@@ -504,6 +513,8 @@ static os_log_t ADMObserverLog(void) {
                                         voiceProcessing:(BOOL)isVoiceProcessingEnabled {
     NSDictionary *policy = self.automaticAudioSessionConfig;
     BOOL nowActive = isPlayoutEnabled || isRecordingEnabled;
+    BOOL retryRecordingActivation = self.recordingActivationPending;
+    self.recordingActivationPending = NO;
 
     if (policy == nil) {
         // The policy was cleared while we still hold an activation (a setup was
@@ -532,6 +543,7 @@ static os_log_t ADMObserverLog(void) {
     [session lockForConfiguration];
 
     NSError *error = nil;
+    BOOL recordingActivationSucceeded = YES;
     if (!nowActive) {
         if (self.autoSessionHoldsActivation && [policy[@"deactivateOnStop"] boolValue]) {
             os_log(ADMObserverLog(), "Native auto-config: deactivating audio session");
@@ -580,9 +592,21 @@ static os_log_t ADMObserverLog(void) {
         if (cfg[@"audioCategoryOptions"] != nil) {
             rtcConfig.categoryOptions = [self avAudioSessionCategoryOptionsFromStrings:cfg[@"audioCategoryOptions"]];
         }
+        BOOL refreshRecording =
+            isPlayoutEnabled && isRecordingEnabled && [self ownsActiveAudioSession:session] &&
+            [rtcConfig.category isEqualToString:AVAudioSessionCategoryPlayAndRecord] &&
+            ([session.category isEqualToString:AVAudioSessionCategoryPlayback] || retryRecordingActivation);
         os_log(ADMObserverLog(), "Native auto-config: setting category %{public}@", rtcConfig.category);
         [session setConfiguration:rtcConfig error:&error];
-        if (error == nil && !session.isActive) {
+        if (refreshRecording && [self ownsActiveAudioSession:session]) {
+            // The active playback graph can still expose a 0 Hz input after the category
+            // changes. Refresh the Apple session directly while holding the WebRTC lock.
+            // LKRTCAudioSession.setActive would only increment its activation count here.
+            if (error == nil) {
+                recordingActivationSucceeded = [session.session setActive:YES error:&error];
+            }
+            self.recordingActivationPending = error != nil || !recordingActivationSucceeded;
+        } else if (error == nil && !session.isActive) {
             BOOL hadHold = self.autoSessionHoldsActivation;
             os_log(ADMObserverLog(), "Native auto-config: activating audio session");
             [session setActive:YES error:&error];
@@ -622,8 +646,10 @@ static os_log_t ADMObserverLog(void) {
 
     [session unlockForConfiguration];
 
-    if (error != nil) {
-        os_log_error(ADMObserverLog(), "Native auto-config failed: %{public}@", error.localizedDescription);
+    if (error != nil || !recordingActivationSucceeded) {
+        os_log_error(ADMObserverLog(),
+                     "Native auto-config failed: %{public}@",
+                     error.localizedDescription ?: @"recording session activation failed");
         return kAutomaticAudioSessionConfigError;
     }
 

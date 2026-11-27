@@ -57,6 +57,18 @@ export default class RTCKeyProvider {
             .then(data => base64.toByteArray(data['result']));
     }
 
+    /** Reinitialize one receiver's key handler from the current native shared key. */
+    async restoreSharedKeyForParticipant(participantId: string, keyIndex = 0): Promise<boolean> {
+        if (!participantId || participantId === 'shared'
+            || !Number.isInteger(keyIndex) || keyIndex < 0 || keyIndex > 255) {
+            throw new Error('Invalid participant or key index');
+        }
+
+        return WebRTCModule.keyProviderRestoreSharedKeyForParticipant({
+            keyProviderId: this._id, participantId, keyIndex,
+        });
+    }
+
     async setKey(participantId: string, key: string | Uint8Array, keyIndex = 0): Promise<boolean> {
         const params = {
             keyProviderId: this._id,

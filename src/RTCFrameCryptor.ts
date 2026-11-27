@@ -147,7 +147,7 @@ export default class RTCFrameCryptor extends EventTarget<RTCFrameCryptorEventMap
 
             const initDict = {
                 frameCryptor: this,
-                state: ev.state,
+                state: this._cryptorStateFromString(ev.state),
             };
 
             this.dispatchEvent(new RTCFrameCryptorStateEvent('framecryptorstatechanged', initDict));

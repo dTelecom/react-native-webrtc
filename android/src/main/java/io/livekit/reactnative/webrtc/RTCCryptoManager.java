@@ -12,6 +12,7 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -311,6 +312,31 @@ public class RTCCryptoManager {
         WritableMap paramsResult = Arguments.createMap();
         paramsResult.putString("result", Base64.encodeToString(key, Base64.NO_WRAP));
         result.resolve(paramsResult);
+    }
+
+    public void keyProviderRestoreSharedKeyForParticipant(ReadableMap params, @NonNull Promise result) {
+        FrameCryptorKeyProvider provider = keyProviders.get(params.getString("keyProviderId"));
+        if (provider == null) {
+            result.reject("keyProviderRestoreSharedKeyFailed", "keyProvider not found", (Throwable) null);
+            return;
+        }
+        int index = params.getInt("keyIndex");
+        String participant = params.getString("participantId");
+        if (participant == null || participant.isEmpty() || participant.equals("shared") || index < 0 || index > 255) {
+            result.reject("keyProviderRestoreSharedKeyFailed", "Invalid participant or key index", (Throwable) null);
+            return;
+        }
+
+        byte[] key = provider.exportSharedKey(index);
+        if (key == null || key.length == 0) {
+            result.resolve(false);
+            return;
+        }
+        try {
+            result.resolve(provider.setKey(participant, index, key));
+        } finally {
+            Arrays.fill(key, (byte) 0);
+        }
     }
 
     public void keyProviderSetKey(ReadableMap params, @NonNull Promise result) {

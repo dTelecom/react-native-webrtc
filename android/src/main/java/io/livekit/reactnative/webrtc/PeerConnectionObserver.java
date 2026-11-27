@@ -42,6 +42,7 @@ class PeerConnectionObserver implements PeerConnection.Observer {
     final Map<String, String> remoteStreamIds; // Stream ID -> React tag
     final Map<String, MediaStream> remoteStreams; // React tag -> MediaStream
     final Map<String, MediaStreamTrack> remoteTracks;
+    volatile boolean requireEncryptedReceivers;
     private final VideoTrackAdapter videoTrackAdapters;
     private final WebRTCModule webRTCModule;
 
@@ -425,6 +426,10 @@ class PeerConnectionObserver implements PeerConnection.Observer {
     @Override
     public void onAddTrack(final RtpReceiver receiver, final MediaStream[] mediaStreams) {
         Log.d(TAG, "onAddTrack");
+        // Gate playout on the native signaling callback, before posting the track to React.
+        if (requireEncryptedReceivers && receiver.track() != null) {
+            receiver.track().setEnabled(false);
+        }
 
         ThreadUtils.runOnExecutor(() -> {
             RtpTransceiver transceiver = null;

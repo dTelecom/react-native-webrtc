@@ -476,6 +476,24 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod(isBlockingSynchronousMethod = true)
+    public boolean peerConnectionRequireEncryptedReceivers(int id) {
+        try {
+            return ThreadUtils
+                    .submitToExecutor(() -> {
+                        PeerConnectionObserver observer = mPeerConnectionObservers.get(id);
+                        if (observer == null) {
+                            return false;
+                        }
+                        observer.requireEncryptedReceivers = true;
+                        return true;
+                    })
+                    .get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     // Must be called in the executor.
     MediaStream getStreamForReactTag(String streamReactTag) {
         MediaStream stream = localStreams.get(streamReactTag);
@@ -820,8 +838,10 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
                     return;
                 }
 
-                transceiver.setDirection(SerializeUtils.parseDirection(direction));
-
+                if (!transceiver.setDirection(SerializeUtils.parseDirection(direction))) {
+                    promise.reject("E_SET_DIRECTION", "Could not set transceiver direction");
+                    return;
+                }
                 promise.resolve(true);
             } catch (Exception e) {
                 Log.d(TAG, "transceiverSetDirection(): " + e.getMessage());
@@ -1609,6 +1629,11 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void keyProviderExportSharedKey(ReadableMap config, Promise promise) {
         frameCryptor.keyProviderExportSharedKey(config, promise);
+    }
+
+    @ReactMethod
+    public void keyProviderRestoreSharedKeyForParticipant(ReadableMap config, Promise promise) {
+        frameCryptor.keyProviderRestoreSharedKeyForParticipant(config, promise);
     }
 
     @ReactMethod

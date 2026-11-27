@@ -8,6 +8,7 @@ import MediaStreamTrackEvent from './MediaStreamTrackEvent';
 import RTCCertificate from './RTCCertificate';
 import RTCDataChannel from './RTCDataChannel';
 import RTCDataChannelEvent from './RTCDataChannelEvent';
+import { type EncryptedReceiverBinding, reserveEncryptedReceiverMids } from './RTCEncryptedReceiverOffer';
 import RTCIceCandidate from './RTCIceCandidate';
 import RTCIceCandidateEvent from './RTCIceCandidateEvent';
 import RTCRtpReceiveParameters from './RTCRtpReceiveParameters';
@@ -91,6 +92,9 @@ export default class RTCPeerConnection extends EventTarget<RTCPeerConnectionEven
     _transceivers: { order: number, transceiver: RTCRtpTransceiver }[];
     _remoteStreams: Map<string, MediaStream>;
     _pendingTrackEvents: any[];
+    private _prepareEncryptedReceiver?: (receiver: RTCRtpReceiver, publicationId?: string) => Promise<void>;
+    private _preparedReceivers = new WeakMap<RTCRtpReceiver, EncryptedReceiverBinding>();
+    private _remoteOfferQueue = Promise.resolve();
 
     static generateCertificate(
         keygenAlgorithm: string | {
@@ -294,6 +298,10 @@ export default class RTCPeerConnection extends EventTarget<RTCPeerConnectionEven
     async createAnswer() {
         log.debug(`${this._pcId} createAnswer`);
 
+        if (this._prepareEncryptedReceiver) {
+            await this._remoteOfferQueue;
+        }
+
         const {
             sdpInfo,
             transceiversInfo
@@ -304,12 +312,29 @@ export default class RTCPeerConnection extends EventTarget<RTCPeerConnectionEven
         return sdpInfo;
     }
 
+    /** Prepare protection before a receiver accepts media from a new audio publication. */
+    prepareEncryptedReceivers(prepare: (receiver: RTCRtpReceiver, publicationId?: string) => Promise<void>): void {
+        if (this.remoteDescription || this._prepareEncryptedReceiver) {
+            throw new Error('Configure receiver encryption once, before the first remote offer');
+        }
+
+        if (!WebRTCModule.peerConnectionRequireEncryptedReceivers?.(this._pcId)) {
+            throw new Error('This native WebRTC module cannot gate encrypted receivers');
+        }
+
+        this._prepareEncryptedReceiver = prepare;
+    }
+
     setConfiguration(configuration): void {
         WebRTCModule.peerConnectionSetConfiguration(configuration, this._pcId);
     }
 
     async setLocalDescription(sessionDescription?: RTCSessionDescription | RTCSessionDescriptionInit): Promise<void> {
         log.debug(`${this._pcId} setLocalDescription`);
+
+        if (this._prepareEncryptedReceiver) {
+            await this._remoteOfferQueue;
+        }
 
         let desc;
 
@@ -358,16 +383,66 @@ export default class RTCPeerConnection extends EventTarget<RTCPeerConnectionEven
             throw new Error(`Invalid session description: invalid type: ${desc.type}`);
         }
 
+        const prepare = this._prepareEncryptedReceiver;
+
+        if (!prepare) {
+            return this._applyRemoteDescription(desc);
+        }
+
+        if (desc.type !== 'offer') {
+            throw new Error('An encrypted subscriber requires a remote offer');
+        }
+
+        const applying = this._remoteOfferQueue.catch(() => undefined).then(async () => {
+            const protectedMids = new Map<string, EncryptedReceiverBinding>();
+
+            for (const t of this.getTransceivers()) {
+                const binding = this._preparedReceivers.get(t.receiver);
+
+                if (!t.stopped && t.mid !== null && binding && binding.kind === t.receiver.track?.kind) {
+                    protectedMids.set(t.mid, binding);
+                }
+            }
+
+            const { reservation, pending } = reserveEncryptedReceiverMids(desc.sdp, protectedMids);
+
+            if (reservation !== undefined) {
+                // Local only: create the actual native RTP receivers without permitting their m-lines to receive.
+                // The caller can only create its answer after the original offer has been applied.
+                await this._applyRemoteDescription({ type: 'offer', sdp: reservation }, true);
+
+                for (const [ mid, binding ] of pending) {
+                    const receiver = this.getTransceivers().find(t => t.mid === mid && !t.stopped)?.receiver;
+
+                    if (!receiver?.track || receiver.track.kind !== binding.kind) {
+                        throw new Error('Could not reserve the native encrypted receiver');
+                    }
+
+                    // Replacement may dispose the old cryptor before it fails. A retry,
+                    // even for the previous publisher, must then prepare again.
+                    this._preparedReceivers.delete(receiver);
+                    await prepare(receiver, binding.publicationId);
+                    this._preparedReceivers.set(receiver, binding);
+                }
+            }
+
+            await this._applyRemoteDescription(desc);
+        });
+
+        this._remoteOfferQueue = applying;
+
+        return applying;
+    }
+
+    private async _applyRemoteDescription(desc: RTCSessionDescriptionInit, reservationOnly = false): Promise<void> {
         const {
             sdpInfo,
             newTransceivers,
             transceiversInfo
         } = await WebRTCModule.peerConnectionSetRemoteDescription(this._pcId, desc);
 
-        if (sdpInfo.type && sdpInfo.sdp) {
-            this.remoteDescription = new RTCSessionDescription(sdpInfo);
-        } else {
-            this.remoteDescription = null;
+        if (!reservationOnly) {
+            this.remoteDescription = sdpInfo.type && sdpInfo.sdp ? new RTCSessionDescription(sdpInfo) : null;
         }
 
         newTransceivers?.forEach(t => {

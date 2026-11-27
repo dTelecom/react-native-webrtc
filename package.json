@@ -1,6 +1,6 @@
 {
   "name": "@dtelecom/react-native-webrtc",
-  "version": "150.2.0-preview.0",
+  "version": "150.2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dTelecom/react-native-webrtc.git"
@@ -10,7 +10,7 @@
   "homepage": "https://github.com/dTelecom/react-native-webrtc",
   "publishConfig": {
     "access": "public",
-    "tag": "next"
+    "tag": "latest"
   },
   "keywords": [
     "react-component",

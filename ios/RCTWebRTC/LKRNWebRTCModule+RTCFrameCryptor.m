@@ -367,6 +367,32 @@ RCT_EXPORT_METHOD(keyProviderExportSharedKey
     resolve(@{@"result" : [key base64EncodedStringWithOptions:0]});
 }
 
+RCT_EXPORT_METHOD(keyProviderRestoreSharedKeyForParticipant
+                  : (nonnull NSDictionary *)constraints resolver
+                  : (RCTPromiseResolveBlock)resolve rejecter
+                  : (RCTPromiseRejectBlock)reject) {
+    LKRTCFrameCryptorKeyProvider *provider = [self getKeyProviderForId:constraints[@"keyProviderId"] rejecter:reject];
+    if (!provider) {
+        return;
+    }
+    NSString *participant = constraints[@"participantId"];
+    NSNumber *index = constraints[@"keyIndex"];
+    if (![participant isKindOfClass:[NSString class]] || !participant.length ||
+        [participant isEqualToString:@"shared"] || ![index isKindOfClass:[NSNumber class]] ||
+        index.doubleValue != index.intValue || index.intValue < 0 || index.intValue > 255) {
+        reject(@"keyProviderRestoreSharedKeyFailed", @"Invalid participant or key index", nil);
+        return;
+    }
+
+    NSData *key = [provider exportSharedKey:index.intValue];
+    if (!key.length) {
+        resolve(@NO);
+        return;
+    }
+    [provider setKey:key withIndex:index.intValue forParticipant:participant];
+    resolve(@YES);
+}
+
 RCT_EXPORT_METHOD(keyProviderSetKey
                   : (nonnull NSDictionary *)constraints resolver
                   : (RCTPromiseResolveBlock)resolve rejecter

@@ -1,6 +1,9 @@
 name: Simple CI
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [dtelecom-m150]
 
 jobs:
   run-ci:
@@ -16,8 +19,11 @@ jobs:
     - name: Check if the git repository is clean
       run: $(exit $(git status --porcelain --untracked-files=no | head -255 | wc -l)) || (echo "Dirty git tree"; git diff; exit 1)
     - run: npm run lint
+    - name: Check encrypted receiver negotiation
+      run: node --test tools/encrypted-receiver-offer.test.cjs
   clang:
     name: Clang-Format Check
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read

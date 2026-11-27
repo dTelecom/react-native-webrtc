@@ -135,7 +135,7 @@ RCT_EXPORT_METHOD(transceiverSetDirection
     if (error) {
         reject(@"E_SET_DIRECTION", @"Could not set direction", error);
     } else {
-        resolve(@true);
+        resolve(@YES);
     }
 }
 

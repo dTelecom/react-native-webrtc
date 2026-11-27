@@ -6,6 +6,8 @@
 
 Use Node from `.nvmrc`, then run `npm ci`, `npm run lint` and `npm pack`. Install the resulting tarball in a React Native app. Use React Native autolinking, then install the app’s CocoaPods dependencies for iOS. Install a single copy of the bridge in the app. The dTelecom and LiveKit M150 packages share native module names.
 
+On macOS, run `bash tools/check-audio-session-observer.sh /path/to/client-sdk-react-native/example` after installing the example’s CocoaPods. This checks microphone activation, audio-session ownership and retries against the native observer.
+
 ### iOS CocoaPods sources
 
 Add both sources at the top of the consuming app’s Podfile before running `pod install`. The LiveKit specs repository provides the pinned `LiveKitWebRTC` framework.

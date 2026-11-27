@@ -191,7 +191,7 @@ Start a React-native app with a WebRtc video session using the latest version M1
 
 * **React Native Version**: 0.66.5 
 * **Plugin Version**:  106.0.4
-* **OS**: Android 9 (multiple devices tested (simulator and real devices))
+* **OS**: Android 9
 * **OS Version**: MacOS Monterey 12.6
 * With correct pro-guard config (as specified in the readme).
 
